@@ -1,0 +1,13 @@
+name: cs_analysis
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python>3.6
+  - geojson
+  - geopandas
+  - geopy
+  - jupyter
+  - numpy
+  - matplotlib
+  - shapely

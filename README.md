@@ -8,7 +8,7 @@ Install [conda](https://conda.io/docs/user-guide/install/index.html), then
 
     git clone https://github.com/phrig/cheapest_seats_analysis.git
     cd cheapest_seats_analysis
-    conda env create -f environment.yml
+    conda env create -f cs_analysis.yml
     source activate cs_analysis
 
 Then start a Jupyter session
