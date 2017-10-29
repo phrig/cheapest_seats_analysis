@@ -27,6 +27,21 @@ def local_loader(path):
     return wrapper
 
 
+@local_loader('data/debt.pkl')
+def load_debt():
+    fname = 'Campaign_Finance_Disclosure_Debt_Data_Current_State.csv'
+    df = load_from_url(fname, urls['debt'])
+
+    print('Processing data frame...')
+    df['Debt Accrual Date'] = format_date(df['Debt Accrual Date'])
+    df['amount'] = df['Debt Amount'].apply(amount_to_float)
+    df['filer_id'] = df['Filer Identification Number']
+    df = get_df_lat_long(df, 'Debt Reporting')
+    df['address'] = format_address(
+            df.loc[:, 'Debt Reporting Address 1': 'Debt Reporting Zip Code'])
+    return df
+
+
 @local_loader('data/receipt.pkl')
 def load_receipt():
     fname = 'Campaign_Finance_Disclosure_Receipt_Data_Current_State.csv'
