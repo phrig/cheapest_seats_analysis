@@ -1,4 +1,3 @@
-import geopandas as gpd
 from functools import wraps
 import numpy as np
 import os
@@ -21,6 +20,7 @@ def local_loader(path):
                 df = load_from_pickle(path)
             else:
                 df = loader()
+                print('Writing dataframe to pickle at {}'.format(path))
                 df.to_pickle(path)
             return df
         return f
@@ -39,6 +39,8 @@ def load_debt():
     df = get_df_lat_long(df, 'Debt Reporting')
     df['address'] = format_address(
             df.loc[:, 'Debt Reporting Address 1': 'Debt Reporting Zip Code'])
+
+    print('Data frame loaded.')
     return df
 
 
@@ -54,6 +56,8 @@ def load_receipt():
     df = get_df_lat_long(df, 'Receipt')
     df['address'] = format_address(
         df.loc[:, 'Receipt Address 1': 'Receipt Zip Code'])
+
+    print('Data frame loaded.')
     return df
 
 
@@ -68,6 +72,8 @@ def load_filer():
     df = get_df_lat_long(df, 'Filer')
     df['address'] = format_address(
             df.loc[:, 'Filer Address 1': 'Filer Zip Code'])
+
+    print('Data frame loaded.')
     return df
 
 
