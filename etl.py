@@ -38,8 +38,7 @@ def load_debt():
     df['amount'] = df['Debt Amount'].apply(amount_to_float)
     df['filer_id'] = df['Filer Identification Number']
     df = get_df_lat_long(df, 'Debt Reporting')
-    df['address'] = format_address(
-            df.loc[:, 'Debt Reporting Address 1': 'Debt Reporting Zip Code'])
+    df['address'] = format_address(df, 'Debt Reporting')
 
     print('Data frame loaded.')
     return df
@@ -55,8 +54,7 @@ def load_receipt():
     df['amount'] = df['Receipt Amount'].apply(amount_to_float)
     df['filer_id'] = df['Filer Identification Number']
     df = get_df_lat_long(df, 'Receipt')
-    df['address'] = format_address(
-        df.loc[:, 'Receipt Address 1': 'Receipt Zip Code'])
+    df['address'] = format_address(df, 'Receipt')
 
     print('Data frame loaded.')
     return df
@@ -71,8 +69,7 @@ def load_filer():
     df['type'] = df['Filer Type'].apply(get_filer_type).astype('category')
     df['filer_id'] = df['Filer Identification Number']
     df = get_df_lat_long(df, 'Filer')
-    df['address'] = format_address(
-            df.loc[:, 'Filer Address 1': 'Filer Zip Code'])
+    df['address'] = format_address(df, 'Filer')
 
     print('Data frame loaded.')
     return df
@@ -100,8 +97,7 @@ def load_expense():
     df['amount'] = df['Expense Amount'].apply(amount_to_float)
     df['filer_id'] = df['Filer Identification Number']
     df = get_df_lat_long(df, 'Expense')
-    df['address'] = format_address(
-            df.loc[:, 'Expense Address 1': 'Expense Zip Code'])
+    df['address'] = format_address(df, 'Expense')
 
     print('Data frame loaded.')
     return df
@@ -120,14 +116,14 @@ def load_contributions(save=True):
     df['amount'] = df['Contribution Amount'].apply(amount_to_float)
     df['filer_id'] = df['Filer Identification Number']
     df = get_df_lat_long(df, 'Contributor')
-    df['address'] = format_address(
-            df.loc[:, 'Contributor Address 1': 'Contributor Zip Code'])
+    df['address'] = format_address(df, 'Contributor')
 
     print('Data frame loaded.')
     return df
 
 
 def load_from_pickle(path):
+    """Load pre-computed dataframe."""
     print('Loading data frame from {}.'.format(path))
     df = pd.read_pickle(path)
     print('Data frame loaded.')
@@ -135,6 +131,7 @@ def load_from_pickle(path):
 
 
 def load_from_url(fname, url, **kwargs):
+    """Load remote csv file."""
     print('Downloading {} from {}.\n'.format(fname, url))
     df = pd.read_csv(url, **kwargs)
     df.fillna('', inplace=True)
@@ -142,13 +139,18 @@ def load_from_url(fname, url, **kwargs):
 
 
 def format_date(series, format='%Y%m%d.0'):
+    """Convert date string as float to datetime object."""
     return pd.to_datetime(series.astype(str),
                           format=format,
                           errors='coerce')
 
 
-def format_address(df):
-    return df.apply(' '.join, axis=1)
+def format_address(df, prefix):
+    """Join separate address fields as a single field."""
+    start = '{} Address 1'.format(prefix)
+    end = '{} Zip Code'.format(prefix)
+    return df.loc[:, start: end].apply(' '.join, axis=1)
+
 
 
 def amount_to_float(amount):
