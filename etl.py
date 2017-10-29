@@ -22,6 +22,7 @@ def local_loader(path):
                 df = loader()
                 print('Writing dataframe to pickle at {}'.format(path))
                 df.to_pickle(path)
+                print('Done.')
             return df
         return f
     return wrapper
