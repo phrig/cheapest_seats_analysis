@@ -1,4 +1,5 @@
 import geopandas as gpd
+from functools import wraps
 import numpy as np
 import os
 import pandas as pd
@@ -12,38 +13,120 @@ urls = {'filer': base + '53wp-ib3s/rows.csv?accessType=DOWNLOAD',
         'contributions':  base + 'wb79-wsa4/rows.csv?accessType=DOWNLOAD'}
 
 
-def load_contributions(save=True):
-    fname = 'Campaign_Finance_Disclosure_Contributions_Data_2017_State.csv'
-    path = 'data/contrib.pkl'
+def local_loader(path):
+    def wrapper(loader):
+        @wraps(loader)
+        def f():
+            if os.path.exists(path):
+                df = load_from_pickle(path)
+            else:
+                df = loader()
+                df.to_pickle(path)
+            return df
+        return f
+    return wrapper
 
-    if os.path.exists(path):
-        print('Loading data frame from {}.'.format(path))
-        df = pd.read_pickle(path)
-        print('Data frame loaded.')
-        return df
 
-    print('Downloading {} from {}.\n'.format(fname, urls['contributions']))
-    df = pd.read_csv(urls['contributions'], dtype={'Employer Zip Code': str})
+@local_loader('data/receipt.pkl')
+def load_receipt():
+    fname = 'Campaign_Finance_Disclosure_Receipt_Data_Current_State.csv'
+    df = load_from_url(fname, urls['receipt'])
 
     print('Processing data frame...')
-    df.fillna('', inplace=True)
-    dates = pd.to_datetime(df['Contribution Date'].astype(str),
-                           format='%Y%m%d.0', errors='coerce')
-    df['Contribution Date'] = dates
+    df['Receipt Date'] = format_date(df['Receipt Date'])
+    df['amount'] = df['Receipt Amount'].apply(amount_to_float)
+    df['filer_id'] = df['Filer Identification Number']
+    df = get_df_lat_long(df, 'Receipt')
+    df['address'] = format_address(
+        df.loc[:, 'Receipt Address 1': 'Receipt Zip Code'])
+    return df
 
+
+@local_loader('data/filer.pkl')
+def load_filer():
+    fname = 'Campaign_Finance_Disclosure_Filer_Data_Current_State.csv'
+    df = load_from_url(fname, urls['filer'], dtype={'Phone Number': str})
+
+    print('Processing data frame...')
+    df['type'] = df['Filer Type'].apply(get_filer_type).astype('category')
+    df['filer_id'] = df['Filer Identification Number']
+    df = get_df_lat_long(df, 'Filer')
+    df['address'] = format_address(
+            df.loc[:, 'Filer Address 1': 'Filer Zip Code'])
+    return df
+
+
+def get_filer_type(x):
+    if x == 1.0:
+        return 'candidate'
+    elif x == 2.0:
+        return 'committee'
+    elif x == 3.0:
+        return 'lobbyist'
+    else:
+        return 'unknown'
+
+
+@local_loader('data/expense.pkl')
+def load_expense():
+    fname = 'Campaign_Finance_Disclosure_Expense_Data_Current_State.csv'
+
+    df = load_from_url(fname, urls['expense'])
+
+    print('Processing data frame...')
+    df['Expense Date'] = format_date(df['Expense Date'])
+    df['amount'] = df['Expense Amount'].apply(amount_to_float)
+    df['filer_id'] = df['Filer Identification Number']
+    df = get_df_lat_long(df, 'Expense')
+    df['address'] = format_address(
+            df.loc[:, 'Expense Address 1': 'Expense Zip Code'])
+
+    print('Data frame loaded.')
+    return df
+
+
+@local_loader('data/contrib.pkl')
+def load_contributions(save=True):
+    fname = 'Campaign_Finance_Disclosure_Contributions_Data_2017_State.csv'
+
+    df = load_from_url(fname,
+                       urls['contributions'],
+                       dtype={'Employer Zip Code': str})
+
+    print('Processing data frame...')
+    df['Contribution Date'] = format_date(df['Contribution Date'])
     df['amount'] = df['Contribution Amount'].apply(amount_to_float)
     df['filer_id'] = df['Filer Identification Number']
     df = get_df_lat_long(df, 'Contributor')
-    df['address'] = df.loc[:,
-                           'Contributor Address 1':
-                           'Contributor Zip Code'].apply(' '.join, axis=1)
-    if save:
-        df.to_pickle(path)
-        print('Data frame loaded and saved to {}.'.format(path))
-    else:
-        print('Data frame loaded.')
+    df['address'] = format_address(
+            df.loc[:, 'Contributor Address 1': 'Contributor Zip Code'])
 
+    print('Data frame loaded.')
     return df
+
+
+def load_from_pickle(path):
+    print('Loading data frame from {}.'.format(path))
+    df = pd.read_pickle(path)
+    print('Data frame loaded.')
+    return df
+
+
+def load_from_url(fname, url, **kwargs):
+    print('Downloading {} from {}.\n'.format(fname, url))
+    df = pd.read_csv(url, **kwargs)
+    df.fillna('', inplace=True)
+    return df
+
+
+def format_date(series, format='%Y%m%d.0'):
+    return pd.to_datetime(series.astype(str),
+                          format=format,
+                          errors='coerce')
+
+
+def format_address(df):
+    return df.apply(' '.join, axis=1)
 
 
 def amount_to_float(amount):
