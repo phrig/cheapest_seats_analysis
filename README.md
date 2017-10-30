@@ -12,4 +12,5 @@ Install [conda](https://conda.io/docs/user-guide/install/index.html), then
     source activate cs_analysis
 
 Then start a Jupyter session
+
     jupyter notebook
